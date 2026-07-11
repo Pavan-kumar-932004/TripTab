@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:drift/drift.dart' show Value;
 import 'package:uuid/uuid.dart';
 
 import '../../../providers/auth_provider.dart';
@@ -86,16 +87,14 @@ class _CreateTripScreenState extends ConsumerState<CreateTripScreen> {
       const uuid = Uuid();
 
       final tripId = uuid.v4();
-      final now = DateTime.now();
 
-      // Create the trip
+      // Create the trip — status overrides default 'draft' to 'active'
       await db.into(db.trips).insert(
         TripsCompanion.insert(
           id: tripId,
           title: title,
-          status: 'active',
           createdBy: currentUser?.id ?? '',
-          createdAt: now,
+          status: Value('active'),
         ),
       );
 
@@ -105,7 +104,7 @@ class _CreateTripScreenState extends ConsumerState<CreateTripScreen> {
           TripMembersCompanion.insert(
             tripId: tripId,
             userId: currentUser.id,
-            joinedAt: now,
+            role: Value('owner'),
           ),
         );
       }
@@ -118,8 +117,7 @@ class _CreateTripScreenState extends ConsumerState<CreateTripScreen> {
         await db.into(db.users).insert(
           UsersCompanion.insert(
             id: memberId,
-            displayName: name,
-            createdAt: now,
+            name: name,
           ),
         );
 
@@ -127,7 +125,6 @@ class _CreateTripScreenState extends ConsumerState<CreateTripScreen> {
           TripMembersCompanion.insert(
             tripId: tripId,
             userId: memberId,
-            joinedAt: now,
           ),
         );
       }
@@ -214,7 +211,7 @@ class _CreateTripScreenState extends ConsumerState<CreateTripScreen> {
                       color: AppColors.textTertiary, size: 20),
                   const SizedBox(width: 12),
                   Text(
-                    currentUser?.displayName ?? 'You',
+                    currentUser?.name ?? 'You',
                     style: GoogleFonts.inter(
                       fontSize: 15,
                       color: AppColors.textPrimary,

@@ -51,7 +51,7 @@ class ExpensesDao extends DatabaseAccessor<AppDatabase>
       // Queue for sync
       await into(syncOutbox).insert(SyncOutboxCompanion.insert(
         id: _uuid.v4(),
-        tableName: 'expenses',
+        targetTable: 'expenses',
         rowId: expense.id.value,
         operation: 'insert',
         payload: '', // Populated by sync worker from the actual row

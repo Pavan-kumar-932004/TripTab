@@ -126,9 +126,9 @@ class TripDetailScreen extends ConsumerWidget {
                               const SizedBox(width: 8),
                           itemBuilder: (_, i) {
                             return Tooltip(
-                              message: members[i].displayName,
+                              message: members[i].name,
                               child: MemberAvatar(
-                                name: members[i].displayName,
+                                name: members[i].name,
                                 size: 42,
                               ),
                             );

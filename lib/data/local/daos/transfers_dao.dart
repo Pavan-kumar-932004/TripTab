@@ -28,7 +28,7 @@ class TransfersDao extends DatabaseAccessor<AppDatabase>
 
       await into(syncOutbox).insert(SyncOutboxCompanion.insert(
         id: _uuid.v4(),
-        tableName: 'transfers',
+        targetTable: 'transfers',
         rowId: transfer.id.value,
         operation: 'insert',
         payload: '', // Populated by sync worker from the actual row

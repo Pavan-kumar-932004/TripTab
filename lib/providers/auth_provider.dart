@@ -38,15 +38,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
   /// immediately — no network required.
   Future<void> loginAsGuest(String name) async {
     final id = const Uuid().v4();
-    final now = DateTime.now();
 
     // Insert a local-only user row via the database.
     // The companion uses the Drift-generated type for the users table.
+    // createdAt/updatedAt use their column defaults automatically.
     await _db.into(_db.users).insert(
       UsersCompanion.insert(
         id: id,
-        displayName: name,
-        createdAt: now,
+        name: name,
       ),
     );
 

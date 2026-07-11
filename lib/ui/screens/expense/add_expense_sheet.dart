@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:drift/drift.dart' show Value;
 import 'package:uuid/uuid.dart';
 
 import '../../../providers/auth_provider.dart';
@@ -142,34 +143,35 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet>
       final shareBase = amountPaise ~/ participantIds.length;
       final remainder = amountPaise % participantIds.length;
 
-      // Create expense
-      await db.into(db.expenses).insert(
-        ExpensesCompanion.insert(
-          id: expenseId,
-          tripId: widget.tripId,
-          amountMinor: amountPaise,
-          reason: Value(reason.isEmpty ? null : reason),
-          fundedByUser: Value(currentUser?.id),
-          loggedBy: currentUser?.id ?? '',
-          source: 'manual',
-          paymentAt: now,
-          entryAt: now,
-          createdAt: now,
-        ),
+      // Build expense companion — source/entryAt/createdAt use defaults
+      final expense = ExpensesCompanion.insert(
+        id: expenseId,
+        tripId: widget.tripId,
+        loggedBy: currentUser?.id ?? '',
+        amountMinor: amountPaise,
+        paymentAt: now,
+        originDeviceId: 'local-${uuid.v4().substring(0, 8)}',
+        reason: Value(reason.isEmpty ? null : reason),
+        fundedByUser: Value(currentUser?.id),
       );
 
-      // Create participants with equal shares
+      // Build participant companions with equal shares
+      // ExpenseParticipants has composite PK {expenseId, userId}, no id column
+      final participants = <ExpenseParticipantsCompanion>[];
       for (var i = 0; i < participantIds.length; i++) {
         final share = shareBase + (i < remainder ? 1 : 0);
-        await db.into(db.expenseParticipants).insert(
-          ExpenseParticipantsCompanion.insert(
-            id: uuid.v4(),
-            expenseId: expenseId,
-            userId: participantIds[i],
-            shareMinor: share,
-          ),
-        );
+        participants.add(ExpenseParticipantsCompanion.insert(
+          expenseId: expenseId,
+          userId: participantIds[i],
+          shareMinor: share,
+        ));
       }
+
+      // Write via DAO — transactional + sync outbox entry
+      await db.expensesDao.createExpenseWithParticipants(
+        expense,
+        participants,
+      );
 
       if (mounted) Navigator.of(context).pop();
     } catch (e) {
@@ -469,7 +471,7 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet>
                                     members: members
                                         .map((m) => PickerMember(
                                               id: m.id,
-                                              name: m.displayName,
+                                              name: m.name,
                                             ))
                                         .toList(),
                                     selectedIds: _selectedMemberIds,

@@ -5,7 +5,7 @@ import 'package:drift/drift.dart';
 @DataClassName('SyncOutboxEntry')
 class SyncOutbox extends Table {
   TextColumn get id => text()();
-  TextColumn get tableName => text()();
+  TextColumn get targetTable => text()();
   TextColumn get rowId => text()();
   TextColumn get operation => text()();
   TextColumn get payload => text()();

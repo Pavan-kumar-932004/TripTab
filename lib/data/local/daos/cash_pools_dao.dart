@@ -28,7 +28,7 @@ class CashPoolsDao extends DatabaseAccessor<AppDatabase>
 
       await into(syncOutbox).insert(SyncOutboxCompanion.insert(
         id: _uuid.v4(),
-        tableName: 'cash_pools',
+        targetTable: 'cash_pools',
         rowId: pool.id.value,
         operation: 'insert',
         payload: '', // Populated by sync worker from the actual row

@@ -8,12 +8,12 @@
 
 ## Phase 0 — Foundation
 
-- [ ] Repo scaffold: Flutter project, Riverpod, Drift configured
+- [x] Repo scaffold: Flutter project, Riverpod, Drift configured
 - [ ] Supabase project created, `db/migrations/0001_init.sql` applied
 - [ ] Verify RLS actually works: create two test accounts, confirm
   account B cannot read account A's trip data via direct query —
   do not just review the policy SQL by eye, attempt to break it
-- [ ] Local Drift schema mirrors the Supabase schema 1:1
+- [x] Local Drift schema mirrors the Supabase schema 1:1
 
 **Exit criteria**: a second engineer (or a fresh agent session) can
 clone the repo, run migrations, and confirm the RLS isolation test
