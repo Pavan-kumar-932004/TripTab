@@ -7,6 +7,7 @@ import 'package:path/path.dart' as p;
 import 'tables/users_table.dart';
 import 'tables/trips_table.dart';
 import 'tables/trip_members_table.dart';
+import 'tables/trip_invites_table.dart';
 import 'tables/cash_pools_table.dart';
 import 'tables/expenses_table.dart';
 import 'tables/expense_participants_table.dart';
@@ -18,23 +19,36 @@ import 'daos/trips_dao.dart';
 import 'daos/expenses_dao.dart';
 import 'daos/transfers_dao.dart';
 import 'daos/cash_pools_dao.dart';
+import 'daos/trip_invites_dao.dart';
 
 part 'database.g.dart';
 
 @DriftDatabase(
   tables: [
-    Users, Trips, TripMembers, CashPools,
+    Users, Trips, TripMembers, TripInvites, CashPools,
     Expenses, ExpenseParticipants, Transfers,
     EditHistory, SyncOutbox,
   ],
-  daos: [TripsDao, ExpensesDao, TransfersDao, CashPoolsDao],
+  daos: [TripsDao, ExpensesDao, TransfersDao, CashPoolsDao, TripInvitesDao],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+    onCreate: (m) async {
+      await m.createAll();
+    },
+    onUpgrade: (m, from, to) async {
+      if (from < 2) {
+        await m.createTable(tripInvites);
+      }
+    },
+  );
 
   static LazyDatabase _openConnection() {
     return LazyDatabase(() async {

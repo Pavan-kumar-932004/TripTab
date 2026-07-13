@@ -8,6 +8,180 @@ import 'app_colors.dart';
 /// Uses Material 3, Google Fonts Inter, and a teal-centric dark theme
 /// with rounded cards, filled inputs, and smooth page transitions.
 abstract class AppTheme {
+  static ThemeData light() {
+    final colorScheme = ColorScheme.fromSeed(
+      seedColor: AppColors.primary,
+      brightness: Brightness.light,
+      surface: AppColors.surfaceLight,
+      onSurface: AppColors.textPrimaryLight,
+      primary: AppColors.primary,
+      onPrimary: AppColors.textOnPrimary,
+      error: AppColors.error,
+      onError: Colors.white,
+    );
+
+    final textTheme = GoogleFonts.interTextTheme(
+      ThemeData.light().textTheme,
+    );
+
+    return ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.light,
+      colorScheme: colorScheme,
+      scaffoldBackgroundColor: AppColors.backgroundLight,
+      textTheme: textTheme,
+
+      // ── AppBar ──────────────────────────────────────────────────
+      appBarTheme: AppBarTheme(
+        backgroundColor: AppColors.backgroundLight,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: false,
+        titleTextStyle: GoogleFonts.inter(
+          fontSize: 22,
+          fontWeight: FontWeight.w700,
+          color: AppColors.textPrimaryLight,
+        ),
+        iconTheme: const IconThemeData(color: AppColors.textPrimaryLight),
+      ),
+
+      // ── Card ────────────────────────────────────────────────────
+      cardTheme: CardThemeData(
+        color: AppColors.cardBackgroundLight,
+        elevation: 1,
+        shadowColor: Colors.black12,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: AppColors.dividerLight),
+        ),
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      ),
+
+      // ── Input fields ────────────────────────────────────────────
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: AppColors.surfaceVariantLight,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(
+            color: AppColors.primary,
+            width: 1.5,
+          ),
+        ),
+        hintStyle: GoogleFonts.inter(
+          color: AppColors.textTertiaryLight,
+          fontSize: 14,
+        ),
+        labelStyle: GoogleFonts.inter(
+          color: AppColors.textSecondaryLight,
+          fontSize: 14,
+        ),
+      ),
+
+      // ── Elevated buttons ────────────────────────────────────────
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.primary,
+          foregroundColor: AppColors.textOnPrimary,
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          textStyle: GoogleFonts.inter(
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+
+      // ── Text buttons ────────────────────────────────────────────
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: AppColors.primary,
+          textStyle: GoogleFonts.inter(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+
+      // ── Bottom sheet ────────────────────────────────────────────
+      bottomSheetTheme: const BottomSheetThemeData(
+        backgroundColor: AppColors.surfaceLight,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        showDragHandle: false,
+      ),
+
+      // ── Floating action button ──────────────────────────────────
+      floatingActionButtonTheme: const FloatingActionButtonThemeData(
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
+        elevation: 4,
+        shape: CircleBorder(),
+      ),
+
+      // ── Divider ─────────────────────────────────────────────────
+      dividerTheme: const DividerThemeData(
+        color: AppColors.dividerLight,
+        thickness: 1,
+        space: 1,
+      ),
+
+      // ── Checkbox ────────────────────────────────────────────────
+      checkboxTheme: CheckboxThemeData(
+        fillColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return AppColors.primary;
+          }
+          return Colors.transparent;
+        }),
+        checkColor: WidgetStateProperty.all(Colors.white),
+        side: const BorderSide(color: AppColors.textTertiaryLight, width: 1.5),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(4),
+        ),
+      ),
+
+      // ── Chip ────────────────────────────────────────────────────
+      chipTheme: ChipThemeData(
+        backgroundColor: AppColors.surfaceVariantLight,
+        deleteIconColor: AppColors.textSecondaryLight,
+        labelStyle: GoogleFonts.inter(
+          color: AppColors.textPrimaryLight,
+          fontSize: 13,
+        ),
+        side: BorderSide.none,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+      ),
+
+      // ── Page transitions ────────────────────────────────────────
+      pageTransitionsTheme: const PageTransitionsTheme(
+        builders: {
+          TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(),
+          TargetPlatform.iOS: FadeUpwardsPageTransitionsBuilder(),
+          TargetPlatform.macOS: FadeUpwardsPageTransitionsBuilder(),
+        },
+      ),
+    );
+  }
+
   static ThemeData dark() {
     final colorScheme = ColorScheme.fromSeed(
       seedColor: AppColors.primary,

@@ -57,7 +57,7 @@ class _MemberPickerState extends State<MemberPicker> {
           onTap: () => setState(() => _expanded = !_expanded),
           borderRadius: BorderRadius.circular(8),
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
+            padding: EdgeInsets.symmetric(vertical: 8),
             child: Row(
               children: [
                 Text(
@@ -68,9 +68,9 @@ class _MemberPickerState extends State<MemberPicker> {
                     color: AppColors.sheetTextPrimary,
                   ),
                 ),
-                const SizedBox(width: 8),
+                SizedBox(width: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(
+                  padding: EdgeInsets.symmetric(
                     horizontal: 8,
                     vertical: 2,
                   ),
@@ -91,7 +91,7 @@ class _MemberPickerState extends State<MemberPicker> {
                 AnimatedRotation(
                   turns: _expanded ? 0.5 : 0,
                   duration: const Duration(milliseconds: 200),
-                  child: const Icon(
+                  child: Icon(
                     Icons.expand_more_rounded,
                     size: 20,
                     color: AppColors.sheetTextSecondary,
@@ -117,7 +117,7 @@ class _MemberPickerState extends State<MemberPicker> {
                     );
                   }).toList(),
                 )
-              : const SizedBox.shrink(),
+              : SizedBox.shrink(),
         ),
       ],
     );
@@ -141,11 +141,11 @@ class _MemberRow extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(8),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6),
+        padding: EdgeInsets.symmetric(vertical: 6),
         child: Row(
           children: [
             MemberAvatar(name: member.name, size: 32),
-            const SizedBox(width: 12),
+            SizedBox(width: 12),
             Expanded(
               child: Text(
                 member.name,

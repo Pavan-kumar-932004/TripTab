@@ -9,7 +9,7 @@
 ## Phase 0 — Foundation
 
 - [x] Repo scaffold: Flutter project, Riverpod, Drift configured
-- [ ] Supabase project created, `db/migrations/0001_init.sql` applied
+- [x] Supabase project created, `db/migrations/0001_init.sql` applied
 - [ ] Verify RLS actually works: create two test accounts, confirm
   account B cannot read account A's trip data via direct query —
   do not just review the policy SQL by eye, attempt to break it
@@ -22,14 +22,14 @@ passes, without asking you anything.
 ## Phase 1 — Manual-only MVP
 
 - [ ] Create trip, invite members (via `trip_members`)
-- [ ] Start/end trip timer (`trips.status` transitions)
-- [ ] Persistent notification quick-add with `RemoteInput` (Android)
-- [ ] In-app quick-add screen (iOS, and as Android fallback)
-- [ ] Reason field optional everywhere — verify by testing the flow
+- [x] Start/end trip timer (`trips.status` transitions)
+- [x] Persistent notification quick-add with `RemoteInput` (Android)
+- [x] In-app quick-add screen (iOS, and as Android fallback)
+- [x] Reason field optional everywhere — verify by testing the flow
   with reason left blank, not just checking the schema allows null
-- [ ] Default-to-everyone split with one-tap override to specific
+- [x] Default-to-everyone split with one-tap override to specific
   members
-- [ ] Shared chronological timeline as the primary screen (not a
+- [x] Shared chronological timeline as the primary screen (not a
   balance-sheet view)
 - [ ] Local writes are instant and fully functional in airplane mode
 
@@ -58,11 +58,11 @@ first.
 
 ## Phase 3 — Settlement
 
-- [ ] Net-balance aggregation query (read-only, computed on demand —
+- [x] Net-balance aggregation query (read-only, computed on demand —
   never a stored running total)
-- [ ] Debt-minimization algorithm producing the smallest set of final
+- [x] Debt-minimization algorithm producing the smallest set of final
   payments
-- [ ] Settle-up screen
+- [x] Settle-up screen
 - [ ] Cash-pool (`funded_by_cash_pool`) correctly folds into the net
   balance — test against the worked ₹500 example in
   DECISIONS_AND_GOTCHAS.md, confirm the numbers match exactly

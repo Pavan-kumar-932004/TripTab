@@ -36,7 +36,7 @@ class SplitToggle extends StatelessWidget {
             isLeft: true,
           ),
         ),
-        const SizedBox(width: 8),
+        SizedBox(width: 8),
         Expanded(
           child: _ToggleButton(
             label: 'Specific',
@@ -73,7 +73,7 @@ class _ToggleButton extends StatelessWidget {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 250),
         curve: Curves.easeInOut,
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+        padding: EdgeInsets.symmetric(vertical: 10, horizontal: 12),
         decoration: BoxDecoration(
           color: isActive ? AppColors.primary : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
@@ -92,7 +92,7 @@ class _ToggleButton extends StatelessWidget {
               size: 18,
               color: isActive ? Colors.white : AppColors.primary,
             ),
-            const SizedBox(width: 6),
+            SizedBox(width: 6),
             Text(
               label,
               style: GoogleFonts.inter(

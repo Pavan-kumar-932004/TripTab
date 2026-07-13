@@ -7,6 +7,7 @@ import 'package:uuid/uuid.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/database_provider.dart';
 import '../../../providers/members_provider.dart';
+import '../../../providers/cash_pools_provider.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/member_picker.dart';
 import '../../widgets/split_toggle.dart';
@@ -27,10 +28,18 @@ import '../../widgets/split_toggle.dart';
 /// - If "Specific": only selected members
 /// - Share = amount_minor / participant_count, remainder to first participant
 /// - Writes via expensesDao.createExpenseWithParticipants
+/// - Writes via expensesDao.createExpenseWithParticipants
 class AddExpenseSheet extends ConsumerStatefulWidget {
   final String tripId;
+  final Expense? expenseToEdit;
+  final List<ExpenseParticipant>? participantsToEdit;
 
-  const AddExpenseSheet({super.key, required this.tripId});
+  const AddExpenseSheet({
+    super.key, 
+    required this.tripId,
+    this.expenseToEdit,
+    this.participantsToEdit,
+  });
 
   @override
   ConsumerState<AddExpenseSheet> createState() => _AddExpenseSheetState();
@@ -43,6 +52,9 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet>
   SplitMode _splitMode = SplitMode.everyone;
   Set<String> _selectedMemberIds = {};
   bool _isSaving = false;
+  
+  // 'user_<id>' or 'pool_<id>'
+  String? _selectedFundedById;
 
   late final AnimationController _entryController;
   late final Animation<double> _scaleAnimation;
@@ -59,6 +71,26 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet>
       curve: Curves.easeOutBack,
     );
     _entryController.forward();
+
+    if (widget.expenseToEdit != null) {
+      _amountController.text = (widget.expenseToEdit!.amountMinor / 100).toString();
+      _reasonController.text = widget.expenseToEdit!.reason ?? '';
+      
+      if (widget.expenseToEdit!.fundedByUser != null) {
+        _selectedFundedById = 'user_${widget.expenseToEdit!.fundedByUser}';
+      } else if (widget.expenseToEdit!.fundedByCashPool != null) {
+        _selectedFundedById = 'pool_${widget.expenseToEdit!.fundedByCashPool}';
+      }
+
+      if (widget.participantsToEdit != null) {
+        // If the number of participants doesn't match total members, it's specific
+        // We will do this check in build() when members are loaded, or just assume specific for now
+        // if participants < members.length.
+        // For now, we set selectedMemberIds. We'll refine the toggle in build.
+        _selectedMemberIds = widget.participantsToEdit!.map((p) => p.userId).toSet();
+        _splitMode = SplitMode.specific; // Will adjust in build if everyone is selected
+      }
+    }
   }
 
   @override
@@ -143,35 +175,46 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet>
       final shareBase = amountPaise ~/ participantIds.length;
       final remainder = amountPaise % participantIds.length;
 
-      // Build expense companion — source/entryAt/createdAt use defaults
+      // Parse fundedBy
+      String? fundedByUser;
+      String? fundedByCashPool;
+      if (_selectedFundedById != null) {
+        if (_selectedFundedById!.startsWith('user_')) {
+          fundedByUser = _selectedFundedById!.substring(5);
+        } else if (_selectedFundedById!.startsWith('pool_')) {
+          fundedByCashPool = _selectedFundedById!.substring(5);
+        }
+      } else {
+        fundedByUser = currentUser?.id;
+      }
+
       final expense = ExpensesCompanion.insert(
-        id: expenseId,
+        id: widget.expenseToEdit?.id ?? expenseId,
         tripId: widget.tripId,
-        loggedBy: currentUser?.id ?? '',
+        loggedBy: widget.expenseToEdit?.loggedBy ?? currentUser?.id ?? '',
         amountMinor: amountPaise,
-        paymentAt: now,
-        originDeviceId: 'local-${uuid.v4().substring(0, 8)}',
+        paymentAt: widget.expenseToEdit?.paymentAt ?? now,
+        originDeviceId: widget.expenseToEdit?.originDeviceId ?? 'local-${uuid.v4().substring(0, 8)}',
         reason: Value(reason.isEmpty ? null : reason),
-        fundedByUser: Value(currentUser?.id),
+        fundedByUser: Value(fundedByUser),
+        fundedByCashPool: Value(fundedByCashPool),
       );
 
-      // Build participant companions with equal shares
-      // ExpenseParticipants has composite PK {expenseId, userId}, no id column
       final participants = <ExpenseParticipantsCompanion>[];
       for (var i = 0; i < participantIds.length; i++) {
         final share = shareBase + (i < remainder ? 1 : 0);
         participants.add(ExpenseParticipantsCompanion.insert(
-          expenseId: expenseId,
+          expenseId: widget.expenseToEdit?.id ?? expenseId,
           userId: participantIds[i],
           shareMinor: share,
         ));
       }
 
-      // Write via DAO — transactional + sync outbox entry
-      await db.expensesDao.createExpenseWithParticipants(
-        expense,
-        participants,
-      );
+      if (widget.expenseToEdit != null) {
+        await db.expensesDao.updateExpenseWithParticipants(expense, participants);
+      } else {
+        await db.expensesDao.createExpenseWithParticipants(expense, participants);
+      }
 
       if (mounted) Navigator.of(context).pop();
     } catch (e) {
@@ -191,7 +234,25 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet>
   @override
   Widget build(BuildContext context) {
     final membersAsync = ref.watch(tripMemberUsersProvider(widget.tripId));
+    final cashPoolsAsync = ref.watch(tripCashPoolsProvider(widget.tripId));
+    final currentUser = ref.watch(currentUserProvider);
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    
+    // Auto-adjust splitMode if editing and all members were selected
+    if (widget.expenseToEdit != null && membersAsync.hasValue) {
+      if (_selectedMemberIds.length == membersAsync.value!.length) {
+        _splitMode = SplitMode.everyone;
+      }
+    }
+    
+    // Default funded by to current user if not set
+    if (_selectedFundedById == null && membersAsync.hasValue && membersAsync.value!.isNotEmpty) {
+      if (currentUser != null && membersAsync.value!.any((m) => m.id == currentUser.id)) {
+        _selectedFundedById = 'user_${currentUser.id}';
+      } else {
+        _selectedFundedById = 'user_${membersAsync.value!.first.id}';
+      }
+    }
 
     return ScaleTransition(
       scale: _scaleAnimation,
@@ -216,7 +277,7 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet>
         ),
         child: SingleChildScrollView(
           child: Padding(
-            padding: const EdgeInsets.all(0),
+            padding: EdgeInsets.all(0),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -225,8 +286,8 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet>
                 // NOTIFICATION-STYLE HEADER
                 // ═══════════════════════════════════════════════
                 Container(
-                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
-                  decoration: const BoxDecoration(
+                  padding: EdgeInsets.fromLTRB(16, 14, 16, 12),
+                  decoration: BoxDecoration(
                     border: Border(
                       bottom: BorderSide(
                         color: Color(0xFFE8E8E8),
@@ -240,7 +301,7 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet>
                       Container(
                         width: 36,
                         height: 36,
-                        decoration: const BoxDecoration(
+                        decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           gradient: LinearGradient(
                             colors: [
@@ -260,7 +321,7 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet>
                           ),
                         ),
                       ),
-                      const SizedBox(width: 10),
+                      SizedBox(width: 10),
                       // Trip name + time
                       Expanded(
                         child: Column(
@@ -288,7 +349,7 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet>
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 2),
+                            SizedBox(height: 2),
                             Text(
                               'Trip active • Tap to add expense',
                               style: GoogleFonts.inter(
@@ -317,7 +378,7 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet>
                 // BODY
                 // ═══════════════════════════════════════════════
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+                  padding: EdgeInsets.fromLTRB(16, 16, 16, 16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -331,10 +392,10 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet>
                           letterSpacing: 0.3,
                         ),
                       ),
-                      const SizedBox(height: 6),
+                      SizedBox(height: 6),
                       TextField(
                         controller: _amountController,
-                        keyboardType: const TextInputType.numberWithOptions(
+                        keyboardType: TextInputType.numberWithOptions(
                           decimal: true,
                         ),
                         style: GoogleFonts.inter(
@@ -351,7 +412,7 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet>
                           ),
                           filled: true,
                           fillColor: const Color(0xFFF5F5F5),
-                          contentPadding: const EdgeInsets.symmetric(
+                          contentPadding: EdgeInsets.symmetric(
                             horizontal: 14,
                             vertical: 12,
                           ),
@@ -361,7 +422,7 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet>
                           ),
                           suffixIcon: _amountController.text.isNotEmpty
                               ? IconButton(
-                                  icon: const Icon(
+                                  icon: Icon(
                                     Icons.close_rounded,
                                     size: 18,
                                     color: AppColors.sheetTextSecondary,
@@ -376,7 +437,7 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet>
                         onChanged: (_) => setState(() {}),
                       ),
 
-                      const SizedBox(height: 14),
+                      SizedBox(height: 14),
 
                       // ── Reason (OPTIONAL — never blocks capture) ──
                       Text(
@@ -388,7 +449,7 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet>
                           letterSpacing: 0.3,
                         ),
                       ),
-                      const SizedBox(height: 6),
+                      SizedBox(height: 6),
                       TextField(
                         controller: _reasonController,
                         style: GoogleFonts.inter(
@@ -403,7 +464,7 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet>
                           ),
                           filled: true,
                           fillColor: const Color(0xFFF5F5F5),
-                          contentPadding: const EdgeInsets.symmetric(
+                          contentPadding: EdgeInsets.symmetric(
                             horizontal: 14,
                             vertical: 12,
                           ),
@@ -413,7 +474,7 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet>
                           ),
                           suffixIcon: _reasonController.text.isNotEmpty
                               ? IconButton(
-                                  icon: const Icon(
+                                  icon: Icon(
                                     Icons.close_rounded,
                                     size: 18,
                                     color: AppColors.sheetTextSecondary,
@@ -428,7 +489,69 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet>
                         onChanged: (_) => setState(() {}),
                       ),
 
-                      const SizedBox(height: 16),
+                      SizedBox(height: 16),
+                      
+                      // ── Funded By ──────────────────────────────
+                      Text(
+                        'Funded By',
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.sheetTextSecondary,
+                          letterSpacing: 0.3,
+                        ),
+                      ),
+                      SizedBox(height: 6),
+                      membersAsync.when(
+                        data: (members) {
+                          final pools = cashPoolsAsync.value ?? [];
+                          
+                          // Build dropdown items
+                          final items = <DropdownMenuItem<String>>[];
+                          
+                          // Add members
+                          for (final m in members) {
+                            items.add(DropdownMenuItem(
+                              value: 'user_${m.id}',
+                              child: Text(m.id == currentUser?.id ? 'Me (${m.name})' : m.name),
+                            ));
+                          }
+                          
+                          // Add active cash pools
+                          for (final p in pools) {
+                            if (p.status == 'open') {
+                              final holder = members.firstWhere((m) => m.id == p.heldByUser, orElse: () => members.first);
+                              items.add(DropdownMenuItem(
+                                value: 'pool_${p.id}',
+                                child: Text('Cash Pool: ₹${p.amountMinor/100} (held by ${holder.name})'),
+                              ));
+                            }
+                          }
+                          
+                          return DropdownButtonFormField<String>(
+                            value: _selectedFundedById,
+                            items: items,
+                            onChanged: (val) {
+                              setState(() {
+                                _selectedFundedById = val;
+                              });
+                            },
+                            decoration: InputDecoration(
+                              filled: true,
+                              fillColor: const Color(0xFFF5F5F5),
+                              contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide: BorderSide.none,
+                              ),
+                            ),
+                          );
+                        },
+                        loading: () => const CircularProgressIndicator(),
+                        error: (_, __) => Text('Error loading options'),
+                      ),
+
+                      SizedBox(height: 16),
 
                       // ── Split ──────────────────────────────
                       Text(
@@ -440,7 +563,7 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet>
                           letterSpacing: 0.3,
                         ),
                       ),
-                      const SizedBox(height: 6),
+                      SizedBox(height: 6),
                       SplitToggle(
                         current: _splitMode,
                         onChanged: (mode) {
@@ -465,7 +588,7 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet>
                         alignment: Alignment.topCenter,
                         child: _splitMode == SplitMode.specific
                             ? Padding(
-                                padding: const EdgeInsets.only(top: 12),
+                                padding: EdgeInsets.only(top: 12),
                                 child: membersAsync.when(
                                   data: (members) => MemberPicker(
                                     members: members
@@ -480,7 +603,7 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet>
                                           () => _selectedMemberIds = ids);
                                     },
                                   ),
-                                  loading: () => const Padding(
+                                  loading: () => Padding(
                                     padding:
                                         EdgeInsets.symmetric(vertical: 16),
                                     child: Center(
@@ -499,10 +622,10 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet>
                                   ),
                                 ),
                               )
-                            : const SizedBox.shrink(),
+                            : SizedBox.shrink(),
                       ),
 
-                      const SizedBox(height: 18),
+                      SizedBox(height: 18),
 
                       // ── Save button ────────────────────────
                       Align(
@@ -511,7 +634,7 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet>
                           onPressed: _isSaving ? null : _save,
                           style: TextButton.styleFrom(
                             foregroundColor: AppColors.primary,
-                            padding: const EdgeInsets.symmetric(
+                            padding: EdgeInsets.symmetric(
                               horizontal: 24,
                               vertical: 10,
                             ),
@@ -522,7 +645,7 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet>
                             ),
                           ),
                           child: _isSaving
-                              ? const SizedBox(
+                              ? SizedBox(
                                   width: 18,
                                   height: 18,
                                   child: CircularProgressIndicator(
@@ -530,7 +653,7 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet>
                                     color: AppColors.primary,
                                   ),
                                 )
-                              : const Text('SAVE'),
+                              : Text(widget.expenseToEdit != null ? 'UPDATE' : 'SAVE'),
                         ),
                       ),
                     ],

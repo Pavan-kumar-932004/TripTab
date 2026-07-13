@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/local/database.dart';
@@ -27,4 +28,10 @@ final selectedTripProvider = Provider<Trip?>((ref) {
       return null;
     }
   }).value;
+});
+
+/// Watches a single trip by ID.
+final tripByIdProvider = StreamProvider.family<Trip?, String>((ref, tripId) {
+  final db = ref.watch(databaseProvider);
+  return (db.select(db.trips)..where((t) => t.id.equals(tripId))).watchSingleOrNull();
 });

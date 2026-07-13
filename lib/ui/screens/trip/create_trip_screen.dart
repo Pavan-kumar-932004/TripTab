@@ -88,13 +88,12 @@ class _CreateTripScreenState extends ConsumerState<CreateTripScreen> {
 
       final tripId = uuid.v4();
 
-      // Create the trip — status overrides default 'draft' to 'active'
+      // Create the trip — starts as 'draft'; user taps "Start Trip" to activate
       await db.into(db.trips).insert(
         TripsCompanion.insert(
           id: tripId,
           title: title,
           createdBy: currentUser?.id ?? '',
-          status: Value('active'),
         ),
       );
 
@@ -157,12 +156,12 @@ class _CreateTripScreenState extends ConsumerState<CreateTripScreen> {
           style: GoogleFonts.inter(fontWeight: FontWeight.w700),
         ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
+          icon: Icon(Icons.arrow_back_rounded),
           onPressed: () => context.pop(),
         ),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -172,22 +171,22 @@ class _CreateTripScreenState extends ConsumerState<CreateTripScreen> {
               style: GoogleFonts.inter(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: AppColors.textSecondary,
+                color: context.colorTextSecondary,
               ),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: 8),
             TextField(
               controller: _titleController,
               style: GoogleFonts.inter(color: Colors.white, fontSize: 15),
               textCapitalization: TextCapitalization.words,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 hintText: 'e.g. Goa Trip 2026',
                 prefixIcon:
-                    Icon(Icons.flight_rounded, color: AppColors.textTertiary),
+                    Icon(Icons.flight_rounded, color: context.colorTextTertiary),
               ),
             ),
 
-            const SizedBox(height: 24),
+            SizedBox(height: 24),
 
             // ── Your name ───────────────────────────────────────
             Text(
@@ -195,31 +194,31 @@ class _CreateTripScreenState extends ConsumerState<CreateTripScreen> {
               style: GoogleFonts.inter(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: AppColors.textSecondary,
+                color: context.colorTextSecondary,
               ),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: 8),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               decoration: BoxDecoration(
-                color: AppColors.surfaceVariant,
+                color: context.colorSurfaceVariant,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.person_rounded,
-                      color: AppColors.textTertiary, size: 20),
-                  const SizedBox(width: 12),
+                  Icon(Icons.person_rounded,
+                      color: context.colorTextTertiary, size: 20),
+                  SizedBox(width: 12),
                   Text(
                     currentUser?.name ?? 'You',
                     style: GoogleFonts.inter(
                       fontSize: 15,
-                      color: AppColors.textPrimary,
+                      color: context.colorTextPrimary,
                     ),
                   ),
                   const Spacer(),
                   Container(
-                    padding: const EdgeInsets.symmetric(
+                    padding: EdgeInsets.symmetric(
                         horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
                       color: AppColors.primary.withValues(alpha: 0.15),
@@ -238,7 +237,7 @@ class _CreateTripScreenState extends ConsumerState<CreateTripScreen> {
               ),
             ),
 
-            const SizedBox(height: 28),
+            SizedBox(height: 28),
 
             // ── Add members ─────────────────────────────────────
             Text(
@@ -246,10 +245,10 @@ class _CreateTripScreenState extends ConsumerState<CreateTripScreen> {
               style: GoogleFonts.inter(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: AppColors.textSecondary,
+                color: context.colorTextSecondary,
               ),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: 8),
             Row(
               children: [
                 Expanded(
@@ -258,15 +257,15 @@ class _CreateTripScreenState extends ConsumerState<CreateTripScreen> {
                     style: GoogleFonts.inter(
                         color: Colors.white, fontSize: 15),
                     textCapitalization: TextCapitalization.words,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       hintText: 'Member name',
                       prefixIcon: Icon(Icons.person_add_alt_1_rounded,
-                          color: AppColors.textTertiary),
+                          color: context.colorTextTertiary),
                     ),
                     onSubmitted: (_) => _addMember(),
                   ),
                 ),
-                const SizedBox(width: 10),
+                SizedBox(width: 10),
                 Container(
                   decoration: BoxDecoration(
                     color: AppColors.primary,
@@ -274,7 +273,7 @@ class _CreateTripScreenState extends ConsumerState<CreateTripScreen> {
                   ),
                   child: IconButton(
                     onPressed: _addMember,
-                    icon: const Icon(Icons.add_rounded,
+                    icon: Icon(Icons.add_rounded,
                         color: Colors.white, size: 22),
                   ),
                 ),
@@ -282,7 +281,7 @@ class _CreateTripScreenState extends ConsumerState<CreateTripScreen> {
             ),
 
             if (_memberNames.isNotEmpty) ...[
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
@@ -290,13 +289,13 @@ class _CreateTripScreenState extends ConsumerState<CreateTripScreen> {
                   return Chip(
                     label: Text(name),
                     onDeleted: () => _removeMember(name),
-                    deleteIcon: const Icon(Icons.close_rounded, size: 16),
+                    deleteIcon: Icon(Icons.close_rounded, size: 16),
                   );
                 }).toList(),
               ),
             ],
 
-            const SizedBox(height: 40),
+            SizedBox(height: 40),
 
             // ── Create button ───────────────────────────────────
             SizedBox(
@@ -305,7 +304,7 @@ class _CreateTripScreenState extends ConsumerState<CreateTripScreen> {
               child: ElevatedButton(
                 onPressed: _isCreating ? null : _createTrip,
                 child: _isCreating
-                    ? const SizedBox(
+                    ? SizedBox(
                         width: 22,
                         height: 22,
                         child: CircularProgressIndicator(

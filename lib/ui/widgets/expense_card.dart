@@ -38,15 +38,12 @@ class _ExpenseCardState extends State<ExpenseCard>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 400),
+      duration: const Duration(milliseconds: 350),
     );
     _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.15),
+      begin: const Offset(0, 0.12),
       end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeOutCubic,
-    ));
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
     _fadeAnimation = Tween<double>(begin: 0, end: 1).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeOut),
     );
@@ -59,22 +56,21 @@ class _ExpenseCardState extends State<ExpenseCard>
     super.dispose();
   }
 
-  /// Formats paise as ₹X.XX.
   String _formatAmount(int paise) {
     final rupees = paise / 100;
+    if (rupees == rupees.truncate()) {
+      return '₹${rupees.toStringAsFixed(0)}';
+    }
     return '₹${rupees.toStringAsFixed(2)}';
   }
 
-  /// Returns a human-friendly relative time string.
-  String _relativeTime(DateTime dt) {
+  /// Returns exact time as HH:mm, with date if not today.
+  String _formatTime(DateTime dt) {
     final now = DateTime.now();
-    final diff = now.difference(dt);
-
-    if (diff.inSeconds < 60) return 'Just now';
-    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
-    if (diff.inHours < 24) return '${diff.inHours}h ago';
-    if (diff.inDays < 7) return '${diff.inDays}d ago';
-    return DateFormat('MMM d').format(dt);
+    final isToday = dt.year == now.year && dt.month == now.month && dt.day == now.day;
+    final timeStr = DateFormat('HH:mm').format(dt);
+    if (isToday) return timeStr;
+    return '${DateFormat('d MMM').format(dt)}  $timeStr';
   }
 
   @override
@@ -83,73 +79,111 @@ class _ExpenseCardState extends State<ExpenseCard>
       position: _slideAnimation,
       child: FadeTransition(
         opacity: _fadeAnimation,
-        child: Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                // Amount badge
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
+        child: Container(
+          margin: EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+          decoration: BoxDecoration(
+            color: context.colorSurface,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.12),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Left accent bar
+                  Container(
+                    width: 4,
+                    color: AppColors.primary,
                   ),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Text(
-                    _formatAmount(widget.amount),
-                    style: GoogleFonts.inter(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.primaryLight,
+                  // Icon circle
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                    child: Container(
+                      width: 42,
+                      height: 42,
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.12),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.receipt_long_rounded,
+                        color: AppColors.primary,
+                        size: 20,
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 14),
-                // Details
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        widget.reason?.isNotEmpty == true
-                            ? widget.reason!
-                            : 'No description',
-                        style: GoogleFonts.inter(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: widget.reason?.isNotEmpty == true
-                              ? AppColors.textPrimary
-                              : AppColors.textTertiary,
-                          fontStyle: widget.reason?.isNotEmpty == true
-                              ? FontStyle.normal
-                              : FontStyle.italic,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                  // Main content
+                  Expanded(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(vertical: 14),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _formatAmount(widget.amount),
+                            style: GoogleFonts.inter(
+                              fontSize: 17,
+                              fontWeight: FontWeight.w700,
+                              color: context.colorTextPrimary,
+                            ),
+                          ),
+                          SizedBox(height: 3),
+                          Text(
+                            widget.reason?.isNotEmpty == true
+                                ? widget.reason!
+                                : 'No description',
+                            style: GoogleFonts.inter(
+                              fontSize: 13,
+                              color: widget.reason?.isNotEmpty == true
+                                  ? context.colorTextSecondary
+                                  : context.colorTextTertiary,
+                              fontStyle: widget.reason?.isNotEmpty == true
+                                  ? FontStyle.normal
+                                  : FontStyle.italic,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          SizedBox(height: 2),
+                          Row(
+                            children: [
+                              Icon(Icons.person_outline_rounded, size: 11, color: context.colorTextTertiary),
+                              SizedBox(width: 3),
+                              Text(
+                                widget.paidBy,
+                                style: GoogleFonts.inter(
+                                  fontSize: 11,
+                                  color: context.colorTextTertiary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Paid by ${widget.paidBy}',
-                        style: GoogleFonts.inter(
-                          fontSize: 12,
-                          color: AppColors.textSecondary,
-                        ),
+                    ),
+                  ),
+                  // Time
+                  Padding(
+                    padding: EdgeInsets.only(right: 14, top: 14),
+                    child: Text(
+                      _formatTime(widget.createdAt),
+                      style: GoogleFonts.inter(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                        color: context.colorTextTertiary,
                       ),
-                    ],
+                    ),
                   ),
-                ),
-                // Time
-                Text(
-                  _relativeTime(widget.createdAt),
-                  style: GoogleFonts.inter(
-                    fontSize: 11,
-                    color: AppColors.textTertiary,
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

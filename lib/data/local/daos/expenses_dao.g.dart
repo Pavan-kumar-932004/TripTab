@@ -8,6 +8,7 @@ mixin _$ExpensesDaoMixin on DatabaseAccessor<AppDatabase> {
   $ExpenseParticipantsTable get expenseParticipants =>
       attachedDatabase.expenseParticipants;
   $SyncOutboxTable get syncOutbox => attachedDatabase.syncOutbox;
+  $CashPoolsTable get cashPools => attachedDatabase.cashPools;
   ExpensesDaoManager get managers => ExpensesDaoManager(this);
 }
 
@@ -23,4 +24,6 @@ class ExpensesDaoManager {
       );
   $$SyncOutboxTableTableManager get syncOutbox =>
       $$SyncOutboxTableTableManager(_db.attachedDatabase, _db.syncOutbox);
+  $$CashPoolsTableTableManager get cashPools =>
+      $$CashPoolsTableTableManager(_db.attachedDatabase, _db.cashPools);
 }

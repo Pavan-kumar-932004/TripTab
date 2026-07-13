@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../providers/theme_provider.dart';
 import '../../../providers/trips_provider.dart';
+import '../../../services/notification_service.dart';
 import '../../theme/app_colors.dart';
 
 /// Main home screen showing the user's trips list.
@@ -15,6 +17,20 @@ class HomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Ensure the notification persists or is recreated on app startup if a trip is active.
+    ref.listen(allTripsProvider, (previous, next) {
+      next.whenData((trips) {
+        final activeTrips = trips.where((t) => t.status == 'active').toList();
+        if (activeTrips.isNotEmpty) {
+          final trip = activeTrips.first;
+          ref.read(notificationServiceProvider).showTripActiveNotification(
+            trip.id,
+            trip.title,
+          );
+        }
+      });
+    });
+
     final tripsAsync = ref.watch(allTripsProvider);
 
     return Scaffold(
@@ -28,12 +44,23 @@ class HomeScreen extends ConsumerWidget {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.settings_outlined, size: 22),
+            icon: Icon(
+              ref.watch(themeModeProvider) == ThemeMode.light
+                  ? Icons.dark_mode_outlined
+                  : Icons.light_mode_outlined,
+              size: 22,
+            ),
+            onPressed: () {
+              ref.read(themeModeProvider.notifier).toggle();
+            },
+          ),
+          IconButton(
+            icon: Icon(Icons.settings_outlined, size: 22),
             onPressed: () {
               // TODO: Navigate to settings
             },
           ),
-          const SizedBox(width: 4),
+          SizedBox(width: 4),
         ],
       ),
       body: tripsAsync.when(
@@ -42,7 +69,7 @@ class HomeScreen extends ConsumerWidget {
             return _EmptyState();
           }
           return ListView.builder(
-            padding: const EdgeInsets.only(top: 8, bottom: 100),
+            padding: EdgeInsets.only(top: 8, bottom: 100),
             itemCount: trips.length,
             itemBuilder: (context, index) {
               final trip = trips[index];
@@ -55,27 +82,27 @@ class HomeScreen extends ConsumerWidget {
         ),
         error: (err, _) => Center(
           child: Padding(
-            padding: const EdgeInsets.all(32),
+            padding: EdgeInsets.all(32),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.error_outline, size: 48,
+                Icon(Icons.error_outline, size: 48,
                     color: AppColors.error),
-                const SizedBox(height: 16),
+                SizedBox(height: 16),
                 Text(
                   'Something went wrong',
                   style: GoogleFonts.inter(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
+                    color: context.colorTextPrimary,
                   ),
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
                 Text(
                   err.toString(),
                   style: GoogleFonts.inter(
                     fontSize: 13,
-                    color: AppColors.textTertiary,
+                    color: context.colorTextTertiary,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -86,7 +113,7 @@ class HomeScreen extends ConsumerWidget {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => context.push('/trip/create'),
-        child: const Icon(Icons.add_rounded, size: 28),
+        child: Icon(Icons.add_rounded, size: 28),
       ),
     );
   }
@@ -98,7 +125,7 @@ class _EmptyState extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(48),
+        padding: EdgeInsets.all(48),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -109,28 +136,28 @@ class _EmptyState extends StatelessWidget {
                 color: AppColors.primary.withValues(alpha: 0.12),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.luggage_rounded,
                 size: 40,
                 color: AppColors.primary,
               ),
             ),
-            const SizedBox(height: 24),
+            SizedBox(height: 24),
             Text(
               'No trips yet',
               style: GoogleFonts.inter(
                 fontSize: 20,
                 fontWeight: FontWeight.w700,
-                color: AppColors.textPrimary,
+                color: context.colorTextPrimary,
               ),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: 8),
             Text(
               'Create your first trip and start\nsplitting expenses with friends',
               textAlign: TextAlign.center,
               style: GoogleFonts.inter(
                 fontSize: 14,
-                color: AppColors.textTertiary,
+                color: context.colorTextTertiary,
                 height: 1.5,
               ),
             ),
@@ -169,6 +196,17 @@ class _TripCard extends StatelessWidget {
     }
   }
 
+  String _formatDate(DateTime dt) {
+    final now = DateTime.now();
+    final diff = now.difference(dt);
+    if (diff.inDays == 0) return 'Today';
+    if (diff.inDays == 1) return 'Yesterday';
+    if (diff.inDays < 7) return '${diff.inDays}d ago';
+    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return '${months[dt.month - 1]} ${dt.day}';
+  }
+
   @override
   Widget build(BuildContext context) {
     final status = trip.status ?? 'draft';
@@ -178,7 +216,7 @@ class _TripCard extends StatelessWidget {
         onTap: () => context.push('/trip/${trip.id}'),
         borderRadius: BorderRadius.circular(16),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.all(16),
           child: Row(
             children: [
               // Trip icon
@@ -189,13 +227,13 @@ class _TripCard extends StatelessWidget {
                   color: AppColors.primary.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.flight_takeoff_rounded,
                   color: AppColors.primary,
                   size: 24,
                 ),
               ),
-              const SizedBox(width: 14),
+              SizedBox(width: 14),
               // Details
               Expanded(
                 child: Column(
@@ -206,17 +244,17 @@ class _TripCard extends StatelessWidget {
                       style: GoogleFonts.inter(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
+                        color: context.colorTextPrimary,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 4),
+                    SizedBox(height: 4),
                     Row(
                       children: [
                         // Status badge
                         Container(
-                          padding: const EdgeInsets.symmetric(
+                          padding: EdgeInsets.symmetric(
                             horizontal: 8,
                             vertical: 2,
                           ),
@@ -234,14 +272,22 @@ class _TripCard extends StatelessWidget {
                             ),
                           ),
                         ),
+                        SizedBox(width: 10),
+                        Text(
+                          _formatDate(trip.createdAt),
+                          style: GoogleFonts.inter(
+                            fontSize: 12,
+                            color: context.colorTextTertiary,
+                          ),
+                        ),
                       ],
                     ),
                   ],
                 ),
               ),
-              const Icon(
+              Icon(
                 Icons.chevron_right_rounded,
-                color: AppColors.textTertiary,
+                color: context.colorTextTertiary,
                 size: 24,
               ),
             ],

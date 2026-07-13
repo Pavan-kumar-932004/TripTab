@@ -1416,6 +1416,512 @@ class TripMembersCompanion extends UpdateCompanion<TripMember> {
   }
 }
 
+class $TripInvitesTable extends TripInvites
+    with TableInfo<$TripInvitesTable, TripInvite> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $TripInvitesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _tripIdMeta = const VerificationMeta('tripId');
+  @override
+  late final GeneratedColumn<String> tripId = GeneratedColumn<String>(
+    'trip_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _inviteCodeMeta = const VerificationMeta(
+    'inviteCode',
+  );
+  @override
+  late final GeneratedColumn<String> inviteCode = GeneratedColumn<String>(
+    'invite_code',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdByMeta = const VerificationMeta(
+    'createdBy',
+  );
+  @override
+  late final GeneratedColumn<String> createdBy = GeneratedColumn<String>(
+    'created_by',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _expiresAtMeta = const VerificationMeta(
+    'expiresAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> expiresAt = GeneratedColumn<DateTime>(
+    'expires_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _maxUsesMeta = const VerificationMeta(
+    'maxUses',
+  );
+  @override
+  late final GeneratedColumn<int> maxUses = GeneratedColumn<int>(
+    'max_uses',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(50),
+  );
+  static const VerificationMeta _useCountMeta = const VerificationMeta(
+    'useCount',
+  );
+  @override
+  late final GeneratedColumn<int> useCount = GeneratedColumn<int>(
+    'use_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    tripId,
+    inviteCode,
+    createdBy,
+    expiresAt,
+    maxUses,
+    useCount,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'trip_invites';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<TripInvite> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('trip_id')) {
+      context.handle(
+        _tripIdMeta,
+        tripId.isAcceptableOrUnknown(data['trip_id']!, _tripIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_tripIdMeta);
+    }
+    if (data.containsKey('invite_code')) {
+      context.handle(
+        _inviteCodeMeta,
+        inviteCode.isAcceptableOrUnknown(data['invite_code']!, _inviteCodeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_inviteCodeMeta);
+    }
+    if (data.containsKey('created_by')) {
+      context.handle(
+        _createdByMeta,
+        createdBy.isAcceptableOrUnknown(data['created_by']!, _createdByMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdByMeta);
+    }
+    if (data.containsKey('expires_at')) {
+      context.handle(
+        _expiresAtMeta,
+        expiresAt.isAcceptableOrUnknown(data['expires_at']!, _expiresAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_expiresAtMeta);
+    }
+    if (data.containsKey('max_uses')) {
+      context.handle(
+        _maxUsesMeta,
+        maxUses.isAcceptableOrUnknown(data['max_uses']!, _maxUsesMeta),
+      );
+    }
+    if (data.containsKey('use_count')) {
+      context.handle(
+        _useCountMeta,
+        useCount.isAcceptableOrUnknown(data['use_count']!, _useCountMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  TripInvite map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return TripInvite(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      tripId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}trip_id'],
+      )!,
+      inviteCode: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}invite_code'],
+      )!,
+      createdBy: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}created_by'],
+      )!,
+      expiresAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}expires_at'],
+      )!,
+      maxUses: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}max_uses'],
+      )!,
+      useCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}use_count'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $TripInvitesTable createAlias(String alias) {
+    return $TripInvitesTable(attachedDatabase, alias);
+  }
+}
+
+class TripInvite extends DataClass implements Insertable<TripInvite> {
+  final String id;
+  final String tripId;
+  final String inviteCode;
+  final String createdBy;
+  final DateTime expiresAt;
+  final int maxUses;
+  final int useCount;
+  final DateTime createdAt;
+  const TripInvite({
+    required this.id,
+    required this.tripId,
+    required this.inviteCode,
+    required this.createdBy,
+    required this.expiresAt,
+    required this.maxUses,
+    required this.useCount,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['trip_id'] = Variable<String>(tripId);
+    map['invite_code'] = Variable<String>(inviteCode);
+    map['created_by'] = Variable<String>(createdBy);
+    map['expires_at'] = Variable<DateTime>(expiresAt);
+    map['max_uses'] = Variable<int>(maxUses);
+    map['use_count'] = Variable<int>(useCount);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  TripInvitesCompanion toCompanion(bool nullToAbsent) {
+    return TripInvitesCompanion(
+      id: Value(id),
+      tripId: Value(tripId),
+      inviteCode: Value(inviteCode),
+      createdBy: Value(createdBy),
+      expiresAt: Value(expiresAt),
+      maxUses: Value(maxUses),
+      useCount: Value(useCount),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory TripInvite.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return TripInvite(
+      id: serializer.fromJson<String>(json['id']),
+      tripId: serializer.fromJson<String>(json['tripId']),
+      inviteCode: serializer.fromJson<String>(json['inviteCode']),
+      createdBy: serializer.fromJson<String>(json['createdBy']),
+      expiresAt: serializer.fromJson<DateTime>(json['expiresAt']),
+      maxUses: serializer.fromJson<int>(json['maxUses']),
+      useCount: serializer.fromJson<int>(json['useCount']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'tripId': serializer.toJson<String>(tripId),
+      'inviteCode': serializer.toJson<String>(inviteCode),
+      'createdBy': serializer.toJson<String>(createdBy),
+      'expiresAt': serializer.toJson<DateTime>(expiresAt),
+      'maxUses': serializer.toJson<int>(maxUses),
+      'useCount': serializer.toJson<int>(useCount),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  TripInvite copyWith({
+    String? id,
+    String? tripId,
+    String? inviteCode,
+    String? createdBy,
+    DateTime? expiresAt,
+    int? maxUses,
+    int? useCount,
+    DateTime? createdAt,
+  }) => TripInvite(
+    id: id ?? this.id,
+    tripId: tripId ?? this.tripId,
+    inviteCode: inviteCode ?? this.inviteCode,
+    createdBy: createdBy ?? this.createdBy,
+    expiresAt: expiresAt ?? this.expiresAt,
+    maxUses: maxUses ?? this.maxUses,
+    useCount: useCount ?? this.useCount,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  TripInvite copyWithCompanion(TripInvitesCompanion data) {
+    return TripInvite(
+      id: data.id.present ? data.id.value : this.id,
+      tripId: data.tripId.present ? data.tripId.value : this.tripId,
+      inviteCode: data.inviteCode.present
+          ? data.inviteCode.value
+          : this.inviteCode,
+      createdBy: data.createdBy.present ? data.createdBy.value : this.createdBy,
+      expiresAt: data.expiresAt.present ? data.expiresAt.value : this.expiresAt,
+      maxUses: data.maxUses.present ? data.maxUses.value : this.maxUses,
+      useCount: data.useCount.present ? data.useCount.value : this.useCount,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TripInvite(')
+          ..write('id: $id, ')
+          ..write('tripId: $tripId, ')
+          ..write('inviteCode: $inviteCode, ')
+          ..write('createdBy: $createdBy, ')
+          ..write('expiresAt: $expiresAt, ')
+          ..write('maxUses: $maxUses, ')
+          ..write('useCount: $useCount, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    tripId,
+    inviteCode,
+    createdBy,
+    expiresAt,
+    maxUses,
+    useCount,
+    createdAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is TripInvite &&
+          other.id == this.id &&
+          other.tripId == this.tripId &&
+          other.inviteCode == this.inviteCode &&
+          other.createdBy == this.createdBy &&
+          other.expiresAt == this.expiresAt &&
+          other.maxUses == this.maxUses &&
+          other.useCount == this.useCount &&
+          other.createdAt == this.createdAt);
+}
+
+class TripInvitesCompanion extends UpdateCompanion<TripInvite> {
+  final Value<String> id;
+  final Value<String> tripId;
+  final Value<String> inviteCode;
+  final Value<String> createdBy;
+  final Value<DateTime> expiresAt;
+  final Value<int> maxUses;
+  final Value<int> useCount;
+  final Value<DateTime> createdAt;
+  final Value<int> rowid;
+  const TripInvitesCompanion({
+    this.id = const Value.absent(),
+    this.tripId = const Value.absent(),
+    this.inviteCode = const Value.absent(),
+    this.createdBy = const Value.absent(),
+    this.expiresAt = const Value.absent(),
+    this.maxUses = const Value.absent(),
+    this.useCount = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  TripInvitesCompanion.insert({
+    required String id,
+    required String tripId,
+    required String inviteCode,
+    required String createdBy,
+    required DateTime expiresAt,
+    this.maxUses = const Value.absent(),
+    this.useCount = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       tripId = Value(tripId),
+       inviteCode = Value(inviteCode),
+       createdBy = Value(createdBy),
+       expiresAt = Value(expiresAt);
+  static Insertable<TripInvite> custom({
+    Expression<String>? id,
+    Expression<String>? tripId,
+    Expression<String>? inviteCode,
+    Expression<String>? createdBy,
+    Expression<DateTime>? expiresAt,
+    Expression<int>? maxUses,
+    Expression<int>? useCount,
+    Expression<DateTime>? createdAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (tripId != null) 'trip_id': tripId,
+      if (inviteCode != null) 'invite_code': inviteCode,
+      if (createdBy != null) 'created_by': createdBy,
+      if (expiresAt != null) 'expires_at': expiresAt,
+      if (maxUses != null) 'max_uses': maxUses,
+      if (useCount != null) 'use_count': useCount,
+      if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  TripInvitesCompanion copyWith({
+    Value<String>? id,
+    Value<String>? tripId,
+    Value<String>? inviteCode,
+    Value<String>? createdBy,
+    Value<DateTime>? expiresAt,
+    Value<int>? maxUses,
+    Value<int>? useCount,
+    Value<DateTime>? createdAt,
+    Value<int>? rowid,
+  }) {
+    return TripInvitesCompanion(
+      id: id ?? this.id,
+      tripId: tripId ?? this.tripId,
+      inviteCode: inviteCode ?? this.inviteCode,
+      createdBy: createdBy ?? this.createdBy,
+      expiresAt: expiresAt ?? this.expiresAt,
+      maxUses: maxUses ?? this.maxUses,
+      useCount: useCount ?? this.useCount,
+      createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (tripId.present) {
+      map['trip_id'] = Variable<String>(tripId.value);
+    }
+    if (inviteCode.present) {
+      map['invite_code'] = Variable<String>(inviteCode.value);
+    }
+    if (createdBy.present) {
+      map['created_by'] = Variable<String>(createdBy.value);
+    }
+    if (expiresAt.present) {
+      map['expires_at'] = Variable<DateTime>(expiresAt.value);
+    }
+    if (maxUses.present) {
+      map['max_uses'] = Variable<int>(maxUses.value);
+    }
+    if (useCount.present) {
+      map['use_count'] = Variable<int>(useCount.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TripInvitesCompanion(')
+          ..write('id: $id, ')
+          ..write('tripId: $tripId, ')
+          ..write('inviteCode: $inviteCode, ')
+          ..write('createdBy: $createdBy, ')
+          ..write('expiresAt: $expiresAt, ')
+          ..write('maxUses: $maxUses, ')
+          ..write('useCount: $useCount, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $CashPoolsTable extends CashPools
     with TableInfo<$CashPoolsTable, CashPool> {
   @override
@@ -5087,6 +5593,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $UsersTable users = $UsersTable(this);
   late final $TripsTable trips = $TripsTable(this);
   late final $TripMembersTable tripMembers = $TripMembersTable(this);
+  late final $TripInvitesTable tripInvites = $TripInvitesTable(this);
   late final $CashPoolsTable cashPools = $CashPoolsTable(this);
   late final $ExpensesTable expenses = $ExpensesTable(this);
   late final $ExpenseParticipantsTable expenseParticipants =
@@ -5098,6 +5605,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final ExpensesDao expensesDao = ExpensesDao(this as AppDatabase);
   late final TransfersDao transfersDao = TransfersDao(this as AppDatabase);
   late final CashPoolsDao cashPoolsDao = CashPoolsDao(this as AppDatabase);
+  late final TripInvitesDao tripInvitesDao = TripInvitesDao(
+    this as AppDatabase,
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -5106,6 +5616,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     users,
     trips,
     tripMembers,
+    tripInvites,
     cashPools,
     expenses,
     expenseParticipants,
@@ -5834,6 +6345,265 @@ typedef $$TripMembersTableProcessedTableManager =
         BaseReferences<_$AppDatabase, $TripMembersTable, TripMember>,
       ),
       TripMember,
+      PrefetchHooks Function()
+    >;
+typedef $$TripInvitesTableCreateCompanionBuilder =
+    TripInvitesCompanion Function({
+      required String id,
+      required String tripId,
+      required String inviteCode,
+      required String createdBy,
+      required DateTime expiresAt,
+      Value<int> maxUses,
+      Value<int> useCount,
+      Value<DateTime> createdAt,
+      Value<int> rowid,
+    });
+typedef $$TripInvitesTableUpdateCompanionBuilder =
+    TripInvitesCompanion Function({
+      Value<String> id,
+      Value<String> tripId,
+      Value<String> inviteCode,
+      Value<String> createdBy,
+      Value<DateTime> expiresAt,
+      Value<int> maxUses,
+      Value<int> useCount,
+      Value<DateTime> createdAt,
+      Value<int> rowid,
+    });
+
+class $$TripInvitesTableFilterComposer
+    extends Composer<_$AppDatabase, $TripInvitesTable> {
+  $$TripInvitesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get tripId => $composableBuilder(
+    column: $table.tripId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get inviteCode => $composableBuilder(
+    column: $table.inviteCode,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get createdBy => $composableBuilder(
+    column: $table.createdBy,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get expiresAt => $composableBuilder(
+    column: $table.expiresAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get maxUses => $composableBuilder(
+    column: $table.maxUses,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get useCount => $composableBuilder(
+    column: $table.useCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$TripInvitesTableOrderingComposer
+    extends Composer<_$AppDatabase, $TripInvitesTable> {
+  $$TripInvitesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get tripId => $composableBuilder(
+    column: $table.tripId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get inviteCode => $composableBuilder(
+    column: $table.inviteCode,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get createdBy => $composableBuilder(
+    column: $table.createdBy,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get expiresAt => $composableBuilder(
+    column: $table.expiresAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get maxUses => $composableBuilder(
+    column: $table.maxUses,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get useCount => $composableBuilder(
+    column: $table.useCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$TripInvitesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $TripInvitesTable> {
+  $$TripInvitesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get tripId =>
+      $composableBuilder(column: $table.tripId, builder: (column) => column);
+
+  GeneratedColumn<String> get inviteCode => $composableBuilder(
+    column: $table.inviteCode,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get createdBy =>
+      $composableBuilder(column: $table.createdBy, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get expiresAt =>
+      $composableBuilder(column: $table.expiresAt, builder: (column) => column);
+
+  GeneratedColumn<int> get maxUses =>
+      $composableBuilder(column: $table.maxUses, builder: (column) => column);
+
+  GeneratedColumn<int> get useCount =>
+      $composableBuilder(column: $table.useCount, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+}
+
+class $$TripInvitesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $TripInvitesTable,
+          TripInvite,
+          $$TripInvitesTableFilterComposer,
+          $$TripInvitesTableOrderingComposer,
+          $$TripInvitesTableAnnotationComposer,
+          $$TripInvitesTableCreateCompanionBuilder,
+          $$TripInvitesTableUpdateCompanionBuilder,
+          (
+            TripInvite,
+            BaseReferences<_$AppDatabase, $TripInvitesTable, TripInvite>,
+          ),
+          TripInvite,
+          PrefetchHooks Function()
+        > {
+  $$TripInvitesTableTableManager(_$AppDatabase db, $TripInvitesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$TripInvitesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$TripInvitesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$TripInvitesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> tripId = const Value.absent(),
+                Value<String> inviteCode = const Value.absent(),
+                Value<String> createdBy = const Value.absent(),
+                Value<DateTime> expiresAt = const Value.absent(),
+                Value<int> maxUses = const Value.absent(),
+                Value<int> useCount = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => TripInvitesCompanion(
+                id: id,
+                tripId: tripId,
+                inviteCode: inviteCode,
+                createdBy: createdBy,
+                expiresAt: expiresAt,
+                maxUses: maxUses,
+                useCount: useCount,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String tripId,
+                required String inviteCode,
+                required String createdBy,
+                required DateTime expiresAt,
+                Value<int> maxUses = const Value.absent(),
+                Value<int> useCount = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => TripInvitesCompanion.insert(
+                id: id,
+                tripId: tripId,
+                inviteCode: inviteCode,
+                createdBy: createdBy,
+                expiresAt: expiresAt,
+                maxUses: maxUses,
+                useCount: useCount,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$TripInvitesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $TripInvitesTable,
+      TripInvite,
+      $$TripInvitesTableFilterComposer,
+      $$TripInvitesTableOrderingComposer,
+      $$TripInvitesTableAnnotationComposer,
+      $$TripInvitesTableCreateCompanionBuilder,
+      $$TripInvitesTableUpdateCompanionBuilder,
+      (
+        TripInvite,
+        BaseReferences<_$AppDatabase, $TripInvitesTable, TripInvite>,
+      ),
+      TripInvite,
       PrefetchHooks Function()
     >;
 typedef $$CashPoolsTableCreateCompanionBuilder =
@@ -7642,6 +8412,8 @@ class $AppDatabaseManager {
       $$TripsTableTableManager(_db, _db.trips);
   $$TripMembersTableTableManager get tripMembers =>
       $$TripMembersTableTableManager(_db, _db.tripMembers);
+  $$TripInvitesTableTableManager get tripInvites =>
+      $$TripInvitesTableTableManager(_db, _db.tripInvites);
   $$CashPoolsTableTableManager get cashPools =>
       $$CashPoolsTableTableManager(_db, _db.cashPools);
   $$ExpensesTableTableManager get expenses =>
