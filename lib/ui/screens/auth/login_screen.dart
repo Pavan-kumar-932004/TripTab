@@ -138,6 +138,25 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
 
+    // While the session restore is in progress, show a clean splash
+    // instead of the login form — avoids the flash-to-login bug.
+    final isRestoring = ref.watch(authLoadingProvider);
+    if (isRestoring) {
+      return Scaffold(
+        body: Stack(
+          children: [
+            _AnimatedBackground(animation: _bgAnim, size: size),
+            const Center(
+              child: CircularProgressIndicator(
+                color: Color(0xFF009688),
+                strokeWidth: 2.5,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Scaffold(
       body: Stack(
         children: [
@@ -173,6 +192,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                 ),
               ),
             ),
+
           ),
         ],
       ),

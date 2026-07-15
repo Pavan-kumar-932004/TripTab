@@ -316,7 +316,7 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet>
                             style: GoogleFonts.inter(
                               fontSize: 18,
                               fontWeight: FontWeight.w800,
-                              color: Colors.white,
+                              color: context.colorTextPrimary,
                             ),
                           ),
                         ),

@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -33,14 +36,38 @@ class TripDetailScreen extends ConsumerStatefulWidget {
 
 class _TripDetailScreenState extends ConsumerState<TripDetailScreen> with WidgetsBindingObserver {
   
+  /// Channel that MainActivity calls when QuickAddActivity finishes.
+  /// Only registered on Android — on iOS this is a no-op.
+  static const _refreshChannel = MethodChannel('triptab/refresh');
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    if (Platform.isAndroid) {
+      _refreshChannel.setMethodCallHandler(_onNativeRefresh);
+    }
+  }
+
+  /// Called by native when QuickAddActivity finishes writing to SQLite.
+  /// Immediately invalidates providers — no WAL delay needed because
+  /// the native side sends this AFTER the write is complete.
+  Future<dynamic> _onNativeRefresh(MethodCall call) async {
+    if (call.method == 'onExpenseAdded') {
+      if (!mounted) return;
+      // Small tick to let SQLite's page cache flush.
+      await Future.delayed(const Duration(milliseconds: 50));
+      if (!mounted) return;
+      ref.invalidate(tripTimelineProvider(widget.tripId));
+      ref.invalidate(tripByIdProvider(widget.tripId));
+    }
   }
 
   @override
   void dispose() {
+    if (Platform.isAndroid) {
+      _refreshChannel.setMethodCallHandler(null);
+    }
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }

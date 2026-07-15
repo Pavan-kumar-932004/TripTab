@@ -97,13 +97,13 @@ class _CreateTripScreenState extends ConsumerState<CreateTripScreen> {
         ),
       );
 
-      // Add the creator as a member
+      // Add the creator as admin
       if (currentUser != null) {
         await db.into(db.tripMembers).insert(
           TripMembersCompanion.insert(
             tripId: tripId,
             userId: currentUser.id,
-            role: Value('owner'),
+            role: Value('admin'),
           ),
         );
       }
@@ -128,8 +128,23 @@ class _CreateTripScreenState extends ConsumerState<CreateTripScreen> {
         );
       }
 
+      // Auto-generate the first invite code so the admin can immediately
+      // share the QR with others right after creation.
+      final inviteCode = currentUser != null
+          ? await db.tripInvitesDao.createInvite(
+              tripId: tripId,
+              createdBy: currentUser.id,
+            )
+          : null;
+
       if (mounted) {
-        context.go('/trip/$tripId');
+        // Navigate to the invite screen (QR code) so the admin can
+        // share it immediately. The invite screen routes back to the trip.
+        final encodedName = Uri.encodeComponent(title);
+        context.go(
+          '/trip/$tripId/invite?name=$encodedName&isNewTrip=true'
+          '${inviteCode != null ? '&code=$inviteCode' : ''}',
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -177,7 +192,8 @@ class _CreateTripScreenState extends ConsumerState<CreateTripScreen> {
             SizedBox(height: 8),
             TextField(
               controller: _titleController,
-              style: GoogleFonts.inter(color: Colors.white, fontSize: 15),
+              style: GoogleFonts.inter(
+                  color: context.colorTextPrimary, fontSize: 15),
               textCapitalization: TextCapitalization.words,
               decoration: InputDecoration(
                 hintText: 'e.g. Goa Trip 2026',
@@ -255,7 +271,7 @@ class _CreateTripScreenState extends ConsumerState<CreateTripScreen> {
                   child: TextField(
                     controller: _memberController,
                     style: GoogleFonts.inter(
-                        color: Colors.white, fontSize: 15),
+                        color: context.colorTextPrimary, fontSize: 15),
                     textCapitalization: TextCapitalization.words,
                     decoration: InputDecoration(
                       hintText: 'Member name',
@@ -273,7 +289,7 @@ class _CreateTripScreenState extends ConsumerState<CreateTripScreen> {
                   ),
                   child: IconButton(
                     onPressed: _addMember,
-                    icon: Icon(Icons.add_rounded,
+                    icon: const Icon(Icons.add_rounded,
                         color: Colors.white, size: 22),
                   ),
                 ),

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -12,23 +13,45 @@ import 'ui/screens/trip/create_trip_screen.dart';
 import 'ui/screens/trip/trip_detail_screen.dart';
 import 'ui/screens/trip/trip_settings_screen.dart';
 
-/// App-wide router configuration using GoRouter.
+/// A [ChangeNotifier] that re-triggers GoRouter's redirect whenever
+/// [authProvider] changes — avoids recreating the entire GoRouter on
+/// every auth state update (which causes route resets).
+class _AuthRouterNotifier extends ChangeNotifier {
+  _AuthRouterNotifier(this.ref) {
+    ref.listen<AuthState>(authProvider, (_, next) {
+      notifyListeners();
+    });
+  }
+
+  final Ref ref;
+  AuthState get _auth => ref.read(authProvider);
+}
+
+/// App-wide router.
 ///
-/// Redirects unauthenticated users to /login and authenticated users
-/// away from /login. Uses [isLoggedInProvider] for redirect logic.
+/// KEY BEHAVIOURS:
+/// 1. While [AuthState.isLoading] is true (session restore in progress),
+///    the redirect returns null — no flash-to-login on cold start.
+/// 2. Uses [refreshListenable] so GoRouter re-evaluates the redirect each
+///    time auth state changes without recreating the router object.
 final appRouterProvider = Provider<GoRouter>((ref) {
-  final isLoggedIn = ref.watch(isLoggedInProvider);
+  final notifier = _AuthRouterNotifier(ref);
 
   return GoRouter(
     initialLocation: '/login',
+    refreshListenable: notifier,
     redirect: (context, state) {
-      // Never redirect the quick-add overlay — it is launched by the
-      // transparent QuickAddActivity and must bypass auth.
+      // Never redirect the quick-add overlay — it bypasses auth entirely.
       if (state.matchedLocation.startsWith('/quick-add')) return null;
 
+      final auth = ref.read(authProvider);
+
+      // While session restore is in progress — hold position.
+      if (auth.isLoading) return null;
+
       final loggingIn = state.matchedLocation == '/login';
-      if (!isLoggedIn && !loggingIn) return '/login';
-      if (isLoggedIn && loggingIn) return '/home';
+      if (!auth.isLoggedIn && !loggingIn) return '/login';
+      if (auth.isLoggedIn && loggingIn) return '/home';
       return null;
     },
     routes: [
@@ -72,9 +95,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/trip/:id/invite',
         builder: (context, state) {
-          final tripId = state.pathParameters['id']!;
-          final tripName = state.uri.queryParameters['name'] ?? 'Trip';
-          return InviteScreen(tripId: tripId, tripName: tripName);
+          final tripId    = state.pathParameters['id']!;
+          final tripName  = state.uri.queryParameters['name'] ?? 'Trip';
+          final isNewTrip = state.uri.queryParameters['isNewTrip'] == 'true';
+          final code      = state.uri.queryParameters['code'];
+          return InviteScreen(
+            tripId: tripId,
+            tripName: tripName,
+            isNewTrip: isNewTrip,
+            initialCode: code,
+          );
         },
       ),
       GoRoute(
@@ -83,8 +113,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
 
       // ── Quick-add overlay ──────────────────────────────────────
-      // Launched by QuickAddActivity (transparent Android window).
-      // No auth redirect — this is an OS-level overlay.
+      // Launched by QuickAddActivity — a transparent Activity with its
+      // own Flutter engine. No auth redirect here.
       GoRoute(
         path: '/quick-add/:tripId',
         builder: (context, state) {

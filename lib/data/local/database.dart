@@ -36,7 +36,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -45,6 +45,16 @@ class AppDatabase extends _$AppDatabase {
     },
     onUpgrade: (m, from, to) async {
       if (from < 2) {
+        // trip_invites was added in schema v2.
+        // Drop first in case it was created with a wrong schema by an
+        // earlier onCreate that predated the TripInvites table definition.
+        await customStatement('DROP TABLE IF EXISTS trip_invites');
+        await m.createTable(tripInvites);
+      }
+      if (from < 3) {
+        // Schema v3: fix trip_invites that may have been created without
+        // the invite_code column (schema v2 bug on existing installs).
+        await customStatement('DROP TABLE IF EXISTS trip_invites');
         await m.createTable(tripInvites);
       }
     },

@@ -43,6 +43,14 @@ class HomeScreen extends ConsumerWidget {
           ),
         ),
         actions: [
+          TextButton.icon(
+            onPressed: () => context.push('/join'),
+            icon: const Icon(Icons.qr_code_scanner_rounded, size: 18),
+            label: Text(
+              'Join',
+              style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+            ),
+          ),
           IconButton(
             icon: Icon(
               ref.watch(themeModeProvider) == ThemeMode.light
@@ -52,12 +60,6 @@ class HomeScreen extends ConsumerWidget {
             ),
             onPressed: () {
               ref.read(themeModeProvider.notifier).toggle();
-            },
-          ),
-          IconButton(
-            icon: Icon(Icons.settings_outlined, size: 22),
-            onPressed: () {
-              // TODO: Navigate to settings
             },
           ),
           SizedBox(width: 4),
@@ -112,8 +114,9 @@ class HomeScreen extends ConsumerWidget {
         ),
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'create_trip_fab',
         onPressed: () => context.push('/trip/create'),
-        child: Icon(Icons.add_rounded, size: 28),
+        child: const Icon(Icons.add_rounded, size: 28),
       ),
     );
   }
@@ -153,12 +156,21 @@ class _EmptyState extends StatelessWidget {
             ),
             SizedBox(height: 8),
             Text(
-              'Create your first trip and start\nsplitting expenses with friends',
+              'Create your first trip or join\none with an invite code',
               textAlign: TextAlign.center,
               style: GoogleFonts.inter(
                 fontSize: 14,
                 color: context.colorTextTertiary,
                 height: 1.5,
+              ),
+            ),
+            SizedBox(height: 32),
+            OutlinedButton.icon(
+              onPressed: () => context.push('/join'),
+              icon: const Icon(Icons.qr_code_scanner_rounded, size: 18),
+              label: Text(
+                'Join a Trip',
+                style: GoogleFonts.inter(fontWeight: FontWeight.w600),
               ),
             ),
           ],

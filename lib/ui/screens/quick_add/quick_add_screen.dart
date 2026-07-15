@@ -37,6 +37,9 @@ class _QuickAddScreenState extends ConsumerState<QuickAddScreen> {
   @override
   void initState() {
     super.initState();
+    // Schedule on the next frame so the transparent scaffold is laid out first.
+    // On cached-engine reuse the frame may already be built — the zero-delay
+    // Future still posts a microtask after initState, which is sufficient.
     WidgetsBinding.instance.addPostFrameCallback((_) => _openSheet());
   }
 

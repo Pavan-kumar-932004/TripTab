@@ -8,33 +8,38 @@ import 'database_provider.dart';
 class AuthState {
   final LocalUser? user;
   final bool isGuest;
+  /// True while we're still checking for a persisted session on startup.
+  final bool isLoading;
 
-  const AuthState({this.user, this.isGuest = false});
+  const AuthState({this.user, this.isGuest = false, this.isLoading = false});
 
   bool get isLoggedIn => user != null;
 
-  AuthState copyWith({LocalUser? user, bool? isGuest}) {
+  AuthState copyWith({LocalUser? user, bool? isGuest, bool? isLoading}) {
     return AuthState(
       user: user ?? this.user,
       isGuest: isGuest ?? this.isGuest,
+      isLoading: isLoading ?? this.isLoading,
     );
   }
 }
 
 /// Manages authentication via Supabase email/password.
 ///
-/// On launch, checks for an existing Supabase session (persistent login).
-/// Falls back to guest mode for offline use.
+/// KEY FIX: starts with `isLoading = true` and completes the async
+/// session restore before the router evaluates the auth state.
+/// This prevents the flash-to-login bug on cold start.
 class AuthNotifier extends StateNotifier<AuthState> {
   final AppDatabase _db;
 
-  AuthNotifier(this._db) : super(const AuthState()) {
+  AuthNotifier(this._db) : super(const AuthState(isLoading: true)) {
     _restoreSession();
   }
 
   SupabaseClient get _supabase => Supabase.instance.client;
 
   /// Try to restore a persisted Supabase session on app startup.
+  /// Sets isLoading=false when done (regardless of outcome).
   Future<void> _restoreSession() async {
     try {
       final session = _supabase.auth.currentSession;
@@ -48,19 +53,22 @@ class AuthNotifier extends StateNotifier<AuthState> {
                 'User',
             supaUser.email,
           );
-          state = AuthState(user: localUser, isGuest: false);
+          state = AuthState(user: localUser, isGuest: false, isLoading: false);
           return;
         }
       }
     } catch (_) {
-      // No session or offline — stay logged out until explicit action.
+      // No session or offline — fall through to logged-out state.
     }
+    // Mark loading complete — stays logged out.
+    state = const AuthState(isLoading: false);
   }
 
   /// Sign up with email + password.
   ///
-  /// Creates the Supabase auth user, then upserts a row in the local
-  /// `users` table with the same UUID as `auth.uid()` for RLS compat.
+  /// NOTE: Supabase email confirmation is turned OFF in the dashboard
+  /// (Authentication > Providers > Email > Confirm email = OFF).
+  /// When deployed, enable it and set a redirect URL.
   Future<void> signUp({
     required String email,
     required String password,
@@ -74,21 +82,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
     final supaUser = response.user;
     if (supaUser == null) {
-      throw Exception('Sign-up returned no user. Check email confirmation settings.');
+      throw Exception(
+          'Sign-up failed. If email confirmation is on, check your inbox.');
     }
 
-    final localUser = await _ensureLocalUser(
-      supaUser.id,
-      displayName,
-      email,
-    );
-    state = AuthState(user: localUser, isGuest: false);
+    final localUser = await _ensureLocalUser(supaUser.id, displayName, email);
+    state = AuthState(user: localUser, isGuest: false, isLoading: false);
   }
 
   /// Sign in with email + password.
-  ///
-  /// Supabase persists the session automatically — the user stays
-  /// logged in across app restarts until explicit sign-out.
   Future<void> signIn({
     required String email,
     required String password,
@@ -110,22 +112,23 @@ class AuthNotifier extends StateNotifier<AuthState> {
           'User',
       supaUser.email,
     );
-    state = AuthState(user: localUser, isGuest: false);
+    state = AuthState(user: localUser, isGuest: false, isLoading: false);
   }
 
-  /// Creates a guest user with a local-only UUID (offline mode).
+  /// Creates a guest user with a local-only ID (offline mode).
   Future<void> loginAsGuest(String name) async {
-    final id = DateTime.now().millisecondsSinceEpoch.toRadixString(36);
+    final id = 'guest_${DateTime.now().millisecondsSinceEpoch.toRadixString(36)}';
 
-    await _db.into(_db.users).insert(
-      UsersCompanion.insert(id: 'guest_$id', name: name),
+    // Use insertOnConflictUpdate so re-tapping guest after restart doesn't crash.
+    await _db.into(_db.users).insertOnConflictUpdate(
+      UsersCompanion.insert(id: id, name: name),
     );
 
     final user = await (_db.select(_db.users)
-          ..where((u) => u.id.equals('guest_$id')))
+          ..where((u) => u.id.equals(id)))
         .getSingle();
 
-    state = AuthState(user: user, isGuest: true);
+    state = AuthState(user: user, isGuest: true, isLoading: false);
   }
 
   /// Sign out — clears both Supabase session and local state.
@@ -135,13 +138,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
     } catch (_) {
       // Offline sign-out is fine — just clear local state.
     }
-    state = const AuthState();
+    state = const AuthState(isLoading: false);
   }
 
   /// Ensures a local `users` row exists for the given Supabase user.
-  ///
-  /// Uses the Supabase `auth.uid()` as the local PK so that RLS
-  /// policies (which compare `auth.uid()` to `users.id`) work correctly.
   Future<LocalUser> _ensureLocalUser(
     String supabaseUid,
     String name,
@@ -172,6 +172,11 @@ final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
 /// Convenience provider: the current [LocalUser], or null.
 final currentUserProvider = Provider<LocalUser?>((ref) {
   return ref.watch(authProvider).user;
+});
+
+/// True only once the session-restore check has finished.
+final authLoadingProvider = Provider<bool>((ref) {
+  return ref.watch(authProvider).isLoading;
 });
 
 /// Convenience provider: whether a user is currently logged in.
