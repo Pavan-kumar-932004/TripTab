@@ -107,3 +107,54 @@ class _ToggleButton extends StatelessWidget {
     );
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Split Type — how the amount is divided (independent of who participates)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// How an expense's total is divided among its participants.
+///
+/// - [equal]: divide evenly (integer paise, remainder to first participant)
+/// - [unequal]: user enters exact per-person amounts
+enum SplitType { equal, unequal }
+
+/// A toggle to switch between equal and unequal (exact-amount) splitting.
+///
+/// Same visual style as [SplitToggle] but controls a separate axis.
+class SplitTypeToggle extends StatelessWidget {
+  final SplitType current;
+  final ValueChanged<SplitType> onChanged;
+
+  const SplitTypeToggle({
+    super.key,
+    required this.current,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: _ToggleButton(
+            label: 'Equal',
+            icon: Icons.drag_handle_rounded,
+            isActive: current == SplitType.equal,
+            onTap: () => onChanged(SplitType.equal),
+            isLeft: true,
+          ),
+        ),
+        SizedBox(width: 8),
+        Expanded(
+          child: _ToggleButton(
+            label: 'Unequal',
+            icon: Icons.tune_rounded,
+            isActive: current == SplitType.unequal,
+            onTap: () => onChanged(SplitType.unequal),
+            isLeft: false,
+          ),
+        ),
+      ],
+    );
+  }
+}

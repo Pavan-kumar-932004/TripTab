@@ -11,6 +11,7 @@ import '../../../providers/cash_pools_provider.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/member_picker.dart';
 import '../../widgets/split_toggle.dart';
+import '../../widgets/unequal_split_editor.dart';
 
 /// The notification-panel-style quick-add expense sheet.
 ///
@@ -50,7 +51,9 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet>
   final _amountController = TextEditingController();
   final _reasonController = TextEditingController();
   SplitMode _splitMode = SplitMode.everyone;
+  SplitType _splitType = SplitType.equal;
   Set<String> _selectedMemberIds = {};
+  Map<String, int> _customShares = {};
   bool _isSaving = false;
   
   // 'user_<id>' or 'pool_<id>'
@@ -89,6 +92,14 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet>
         // For now, we set selectedMemberIds. We'll refine the toggle in build.
         _selectedMemberIds = widget.participantsToEdit!.map((p) => p.userId).toSet();
         _splitMode = SplitMode.specific; // Will adjust in build if everyone is selected
+      }
+
+      // Detect unequal (exact) split from existing data
+      if (widget.expenseToEdit!.splitType == 'exact' && widget.participantsToEdit != null) {
+        _splitType = SplitType.unequal;
+        _customShares = {
+          for (final p in widget.participantsToEdit!) p.userId: p.shareMinor,
+        };
       }
     }
   }
@@ -171,9 +182,52 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet>
         participantIds = _selectedMemberIds.toList();
       }
 
-      // Calculate equal shares in paise (integer division + remainder)
-      final shareBase = amountPaise ~/ participantIds.length;
-      final remainder = amountPaise % participantIds.length;
+      // ── Validate & build participant shares ────────────────────────
+      final participants = <ExpenseParticipantsCompanion>[];
+
+      if (_splitType == SplitType.unequal) {
+        // Exact-amount split: use user-entered values
+        int assignedTotal = 0;
+        for (final pid in participantIds) {
+          assignedTotal += _customShares[pid] ?? 0;
+        }
+        if (assignedTotal != amountPaise) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Split amounts must add up to ₹${(amountPaise / 100).toStringAsFixed(2)}',
+                style: GoogleFonts.inter(),
+              ),
+              backgroundColor: AppColors.warning,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+          );
+          setState(() => _isSaving = false);
+          return;
+        }
+        for (final pid in participantIds) {
+          participants.add(ExpenseParticipantsCompanion.insert(
+            expenseId: widget.expenseToEdit?.id ?? expenseId,
+            userId: pid,
+            shareMinor: _customShares[pid] ?? 0,
+          ));
+        }
+      } else {
+        // Equal split: integer division + remainder to first participant
+        final shareBase = amountPaise ~/ participantIds.length;
+        final remainder = amountPaise % participantIds.length;
+        for (var i = 0; i < participantIds.length; i++) {
+          final share = shareBase + (i < remainder ? 1 : 0);
+          participants.add(ExpenseParticipantsCompanion.insert(
+            expenseId: widget.expenseToEdit?.id ?? expenseId,
+            userId: participantIds[i],
+            shareMinor: share,
+          ));
+        }
+      }
 
       // Parse fundedBy
       String? fundedByUser;
@@ -198,17 +252,8 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet>
         reason: Value(reason.isEmpty ? null : reason),
         fundedByUser: Value(fundedByUser),
         fundedByCashPool: Value(fundedByCashPool),
+        splitType: Value(_splitType == SplitType.unequal ? 'exact' : 'equal'),
       );
-
-      final participants = <ExpenseParticipantsCompanion>[];
-      for (var i = 0; i < participantIds.length; i++) {
-        final share = shareBase + (i < remainder ? 1 : 0);
-        participants.add(ExpenseParticipantsCompanion.insert(
-          expenseId: widget.expenseToEdit?.id ?? expenseId,
-          userId: participantIds[i],
-          shareMinor: share,
-        ));
-      }
 
       if (widget.expenseToEdit != null) {
         await db.expensesDao.updateExpenseWithParticipants(expense, participants);
@@ -606,6 +651,75 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet>
                                   loading: () => Padding(
                                     padding:
                                         EdgeInsets.symmetric(vertical: 16),
+                                    child: Center(
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: AppColors.primary,
+                                      ),
+                                    ),
+                                  ),
+                                  error: (_, __) => Text(
+                                    'Could not load members',
+                                    style: GoogleFonts.inter(
+                                      color: AppColors.error,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ),
+                              )
+                            : SizedBox.shrink(),
+                      ),
+
+                      SizedBox(height: 12),
+
+                      // ── Split Type (Equal / Unequal) ───────────
+                      Text(
+                        'Split Type',
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.sheetTextSecondary,
+                          letterSpacing: 0.3,
+                        ),
+                      ),
+                      SizedBox(height: 6),
+                      SplitTypeToggle(
+                        current: _splitType,
+                        onChanged: (type) {
+                          setState(() => _splitType = type);
+                        },
+                      ),
+
+                      // ── Unequal split editor (animated) ────────
+                      AnimatedSize(
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeInOut,
+                        alignment: Alignment.topCenter,
+                        child: _splitType == SplitType.unequal
+                            ? Padding(
+                                padding: EdgeInsets.only(top: 12),
+                                child: membersAsync.when(
+                                  data: (members) {
+                                    // Determine which members to show
+                                    final visibleMembers = _splitMode == SplitMode.everyone
+                                        ? members
+                                        : members.where((m) => _selectedMemberIds.contains(m.id)).toList();
+                                    return UnequalSplitEditor(
+                                      members: visibleMembers
+                                          .map((m) => PickerMember(
+                                                id: m.id,
+                                                name: m.name,
+                                              ))
+                                          .toList(),
+                                      totalPaise: _parseAmountToPaise() ?? 0,
+                                      shares: _customShares,
+                                      onChanged: (shares) {
+                                        setState(() => _customShares = shares);
+                                      },
+                                    );
+                                  },
+                                  loading: () => Padding(
+                                    padding: EdgeInsets.symmetric(vertical: 16),
                                     child: Center(
                                       child: CircularProgressIndicator(
                                         strokeWidth: 2,

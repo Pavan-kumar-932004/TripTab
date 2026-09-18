@@ -10,6 +10,9 @@ import '../../../providers/auth_provider.dart';
 import '../../../providers/database_provider.dart';
 import '../../../providers/members_provider.dart';
 import '../../theme/app_colors.dart';
+import '../../widgets/member_picker.dart';
+import '../../widgets/split_toggle.dart';
+import '../../widgets/unequal_split_editor.dart';
 
 /// Entry point from the active-trip notification.
 ///
@@ -92,7 +95,9 @@ class _QuickAddSheetState extends ConsumerState<_QuickAddSheet> {
   final _reasonController = TextEditingController();
   final _amountFocus = FocusNode();
   _SplitMode _splitMode = _SplitMode.everyone;
+  SplitType _splitType = SplitType.equal;
   Set<String> _selectedIds = {};
+  Map<String, int> _customShares = {};
   bool _saving = false;
 
   @override
@@ -143,8 +148,49 @@ class _QuickAddSheetState extends ConsumerState<_QuickAddSheet> {
         return;
       }
 
-      final shareBase = amountPaise ~/ participantIds.length;
-      final remainder = amountPaise % participantIds.length;
+      // ── Build participant shares ────────────────────────────────
+      final participants = <ExpenseParticipantsCompanion>[];
+      String splitTypeValue = 'equal';
+
+      if (_splitType == SplitType.unequal) {
+        // Exact-amount split: use user-entered values
+        splitTypeValue = 'exact';
+        int assignedTotal = 0;
+        for (final pid in participantIds) {
+          assignedTotal += _customShares[pid] ?? 0;
+        }
+        if (assignedTotal != amountPaise) {
+          HapticFeedback.heavyImpact();
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(
+              'Split amounts must add up to \u20b9${(amountPaise / 100).toStringAsFixed(2)}',
+              style: GoogleFonts.inter(),
+            ),
+            backgroundColor: AppColors.warning,
+            behavior: SnackBarBehavior.floating,
+          ));
+          setState(() => _saving = false);
+          return;
+        }
+        for (final pid in participantIds) {
+          participants.add(ExpenseParticipantsCompanion.insert(
+            expenseId: expenseId,
+            userId: pid,
+            shareMinor: _customShares[pid] ?? 0,
+          ));
+        }
+      } else {
+        // Equal split: integer division + remainder
+        final shareBase = amountPaise ~/ participantIds.length;
+        final remainder = amountPaise % participantIds.length;
+        for (var i = 0; i < participantIds.length; i++) {
+          participants.add(ExpenseParticipantsCompanion.insert(
+            expenseId: expenseId,
+            userId: participantIds[i],
+            shareMinor: shareBase + (i < remainder ? 1 : 0),
+          ));
+        }
+      }
 
       final expense = ExpensesCompanion.insert(
         id: expenseId,
@@ -155,16 +201,8 @@ class _QuickAddSheetState extends ConsumerState<_QuickAddSheet> {
         reason: Value(reason.isEmpty ? null : reason),
         paymentAt: DateTime.now(),
         originDeviceId: 'quick-add-notif',
+        splitType: Value(splitTypeValue),
       );
-
-      final participants = <ExpenseParticipantsCompanion>[];
-      for (var i = 0; i < participantIds.length; i++) {
-        participants.add(ExpenseParticipantsCompanion.insert(
-          expenseId: expenseId,
-          userId: participantIds[i],
-          shareMinor: shareBase + (i < remainder ? 1 : 0),
-        ));
-      }
 
       await db.expensesDao.createExpenseWithParticipants(expense, participants);
       HapticFeedback.heavyImpact();
@@ -410,6 +448,84 @@ class _QuickAddSheetState extends ConsumerState<_QuickAddSheet> {
                                   ],
                                 ),
                               ),
+                              loading: () => SizedBox.shrink(),
+                              error: (_, __) => SizedBox.shrink(),
+                            )
+                          : SizedBox.shrink(),
+                    ),
+
+                    SizedBox(height: 14),
+
+                    // ── Split type toggle ────────────────────────────
+                    _label('Split Type'),
+                    SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _SplitButton(
+                            label: 'Equal',
+                            icon: Icons.drag_handle_rounded,
+                            active: _splitType == SplitType.equal,
+                            onTap: () => setState(
+                                () => _splitType = SplitType.equal),
+                          ),
+                        ),
+                        SizedBox(width: 10),
+                        Expanded(
+                          child: _SplitButton(
+                            label: 'Unequal',
+                            icon: Icons.tune_rounded,
+                            active: _splitType == SplitType.unequal,
+                            onTap: () => setState(
+                                () => _splitType = SplitType.unequal),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    // ── Unequal split editor ─────────────────────────
+                    AnimatedSize(
+                      duration: const Duration(milliseconds: 200),
+                      curve: Curves.easeOut,
+                      child: _splitType == SplitType.unequal
+                          ? membersAsync.when(
+                              data: (members) {
+                                final visibleMembers =
+                                    _splitMode == _SplitMode.everyone
+                                        ? members
+                                        : members
+                                            .where((m) =>
+                                                _selectedIds.contains(m.id))
+                                            .toList();
+
+                                final amountText =
+                                    _amountController.text.trim();
+                                final amountVal =
+                                    double.tryParse(amountText);
+                                final totalPaise = amountVal != null &&
+                                        amountVal > 0
+                                    ? (amountVal * 100).round()
+                                    : 0;
+
+                                return Padding(
+                                  padding: EdgeInsets.only(top: 12),
+                                  child: UnequalSplitEditor(
+                                    members: visibleMembers
+                                        .map((m) => PickerMember(
+                                              id: m.id,
+                                              name: m.name,
+                                            ))
+                                        .toList(),
+                                    totalPaise: totalPaise,
+                                    shares: _customShares,
+                                    onChanged: (shares) {
+                                      setState(
+                                          () => _customShares = shares);
+                                    },
+                                    darkMode: true,
+                                  ),
+                                );
+                              },
                               loading: () => SizedBox.shrink(),
                               error: (_, __) => SizedBox.shrink(),
                             )
